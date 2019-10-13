@@ -1,30 +1,66 @@
 ---
-language: rust
-rust:
-  - stable
-  - beta
-  - nightly
-addons:
-  apt:
-    packages:
-      - libssl-dev
-cache: cargo
+# YAML Templates
+_rust_job: &rust
+  language: rust
+  cache: cargo
+  rust:
+    - stable
+    - beta
+    - nightly
+
+  script:
+    - cargo clean
+    - cargo build
+    - cargo test
+
+_linux_job: &linux
+  <<: *rust
+  addons:
+    apt:
+      packages:
+        - libssl-dev
+  before_cache: |
+    if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+      cargo install cargo-tarpaulin -f
+    fi
+  after_success: |
+    if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
+      cargo tarpaulin --out Xml
+      bash <(curl -s https://codecov.io/bash)
+    fi
+
 matrix:
   allow_failures:
-    - rust: nightly
+    - os: 
+      - osx
+      - windows
 
-before_cache: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo install cargo-tarpaulin -f
-  fi
+# Jobs
+jobs:
+  include:
+    # Linux
+    - stage: "Tests"
+      <<: *linux
 
-script:
-- cargo clean
-- cargo build
-- cargo test
+    # Windows
+    - stage: "Tests"
+      if: branch = master && type = push
+      os: windows
+      <<: *rust
 
-after_success: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable ]]; then
-    cargo tarpaulin --out Xml
-    bash <(curl -s https://codecov.io/bash)
-  fi
+    # MacOS
+    - stage: "Tests"
+      if: branch = master && type = push
+      os: osx
+      <<: *rust
+
+    - stage: "Deployments"
+      name: "Crates.io"
+      deploy:
+        provider: cargo
+        token:
+          secure: "PLfxWrXDBXlw2NAurRC+nDvozXmvqS05ezWxLkIGVtT48PuhsHbw7eTk8eVyMsuLttlAT7avnR+5lxGCq9Q2nXZUjV2xbq0ewZwEyQ5KXrusFJKNYgamRdSfd7EshfG2NSLN/rObmVh1zeSldk2c8f9wKBMqo+mav5ML3lagXMi2Ls0mZUguuNueoIOjg/RRxZwfK5kdFcIeYoxruRhPhbMbXgbahtl2exwth6QD4xMw4pvqwO4VFE1OvfSc626fC04YbZf1jcfEte0HmnOsnBKOqKBZyO67jyZm+4POGMOLOHbPqNmItz5ucn877C3vkcespXR1y6NHoViOXx8+VBaI3ngSFSSa9Ba1SRWjmxYCgxUHf8qsba8jQnn1UA47aHmdojW+/wbnu9X9LvcEcax08hJ2pew+79jVIRZIRqyDXvaDJUho1zbXvcWPaq1bddxf7+OHsCvG2qdVfjsQ6YEPxIfNn1pmmIlVJzkOeVHed1KkdqabVoBT2MKI61uxe9WHEVZwsOc9BGxJSq5gBAtu6k4VjxfW+rxsvug+4WEPQ/e4cd7yIbss7atCbHuQkIRebgjUHsJlhJ38SIDzGzOo4Mc2QF9DM8TrZ80IS0dXTMxqOekXOH1DjDhmzOSvVWcpFwRAVa6Y+yB91BJsIYZTExGy31VfOYy0rApjfnM="
+        on:
+          tags: true
+          branch: master
+          rust: stable
