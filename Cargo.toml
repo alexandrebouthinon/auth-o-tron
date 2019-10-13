@@ -1,0 +1,18 @@
+[package]
+name = "oath-keeper"
+version = "0.1.0"
+authors = ["Alexandre Bouthinon <bouthinon.alexandre@gmail.com>"]
+edition = "2018"
+license = "MIT"
+homepage = "https://github.com/alexandrebouthinon/oath-keeper"
+repository = "https://github.com/alexandrebouthinon/oath-keeper.git"
+
+[dependencies]
+url = "^2.1.0"
+otpauth = "^0.4.1"
+prettytable-rs = "^0.8.0"
+percent-encoding = "^2.1.0"
+failure = "^0.1.5"
+exitfailure = "^0.5.1"
+structopt = { version = "0.3", default-features = false }
+dialoguer = "^0.4.0"
