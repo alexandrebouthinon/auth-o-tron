@@ -53,6 +53,12 @@ fn main() -> Result<(), ExitFailure> {
 
     let code = &accounts.get(choice).unwrap().generate_code()?;
 
-    println!("[+] Code generated: {}", code);
+    if cli.clipboard {
+        cli::send_to_clipboard(&code)?;
+        println!("[+] Code saved in clipboard");
+    } else {
+        println!("[+] Code generated: {}", code);
+    }
+
     Ok(())
 }

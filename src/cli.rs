@@ -24,6 +24,8 @@ use super::accounts;
 
 use structopt::StructOpt;
 use url::Url;
+use failure::format_err;
+use clipboard::{ClipboardContext, ClipboardProvider};
 
 use std::io::{BufRead, BufReader, Read};
 
@@ -32,6 +34,9 @@ pub struct Cli {
     /// Input backup file
     #[structopt(short = "f", long = "file")]
     pub file: String,
+    /// Save code in clipboard
+    #[structopt(long)]
+    pub clipboard: bool,
 }
 
 pub fn parse_backup<B: Read>(
@@ -46,9 +51,22 @@ pub fn parse_backup<B: Read>(
     Ok(accounts)
 }
 
+pub fn send_to_clipboard(value: &str) -> Result<(), failure::Error> {
+    let mut ctx: ClipboardContext = match ClipboardProvider::new() {
+        Ok(c) => c,
+        Err(err) => return Err(format_err!("{}", err))
+    };
+
+    match ctx.set_contents(value.to_owned()) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(format_err!("{}", err))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
+    use clipboard::{ClipboardContext, ClipboardProvider};
 
     #[test]
     fn parse_backup_ok() {
@@ -71,5 +89,15 @@ mod tests {
 
         let accounts = parse_backup(backup);
         assert!(accounts.is_err());
+    }
+
+    #[test]
+    fn send_to_clipboard_test() {
+        let code = "012345";
+
+        let res = send_to_clipboard(&code);
+        assert!(res.is_ok());
+        let mut ctx: ClipboardContext = ClipboardProvider::new().unwrap();
+        assert_eq!(&ctx.get_contents().unwrap(), &code.to_string());
     }
 }
