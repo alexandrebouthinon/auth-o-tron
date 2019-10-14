@@ -22,8 +22,7 @@
 
 use super::accounts;
 
-use clipboard::x11_clipboard::{Primary, X11ClipboardContext};
-use clipboard::ClipboardProvider;
+use clipboard::{ClipboardContext, ClipboardProvider};
 use failure::format_err;
 use structopt::StructOpt;
 use url::Url;
@@ -53,7 +52,7 @@ pub fn parse_backup<B: Read>(
 }
 
 pub fn send_to_clipboard(value: &str) -> Result<(), failure::Error> {
-    let mut ctx: X11ClipboardContext<Primary> = match ClipboardProvider::new() {
+    let mut ctx: ClipboardContext = match ClipboardProvider::new() {
         Ok(c) => c,
         Err(err) => return Err(format_err!("{}", err)),
     };
