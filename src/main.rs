@@ -55,7 +55,11 @@ fn main() -> Result<(), ExitFailure> {
 
     if cli.clipboard {
         cli::send_to_clipboard(&code)?;
-        println!("[+] Code saved in clipboard");
+        println!(
+            "[+] Code saved in clipboard. \
+             Use it and press any key to exit...",
+        );
+        io::stdin().read_line(&mut String::new())?;
     } else {
         println!("[+] Code generated: {}", code);
     }
