@@ -1,17 +1,17 @@
 // The MIT License
-// 
+//
 // Copyright (c) 2019 Alexandre BOUTHINON
-// 
+//
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
 // in the Software without restriction, including without limitation the rights
 // to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
 // copies of the Software, and to permit persons to whom the Software is
 // furnished to do so, subject to the following conditions:
-// 
+//
 // The above copyright notice and this permission notice shall be included in
 // all copies or substantial portions of the Software.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 // IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -53,6 +53,16 @@ fn main() -> Result<(), ExitFailure> {
 
     let code = &accounts.get(choice).unwrap().generate_code()?;
 
-    println!("[+] Code generated: {}", code);
+    if cli.clipboard {
+        cli::send_to_clipboard(&code)?;
+        println!(
+            "[+] Code saved in clipboard. \
+             Use it and press any key to exit...",
+        );
+        io::stdin().read_line(&mut String::new())?;
+    } else {
+        println!("[+] Code generated: {}", code);
+    }
+
     Ok(())
 }
