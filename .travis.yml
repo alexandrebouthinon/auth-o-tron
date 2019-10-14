@@ -1,46 +1,106 @@
 ---
+# YAML template
+_rust_base: &rust_base
+  language: rust
+  cache: cargo
+  script:
+    - cargo clean
+    - cargo build
+    - cargo test
+
+_coverage: &coverage
+  before_cache: |
+    if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
+      cargo install cargo-tarpaulin -f
+    fi
+  after_success: |
+    if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
+      cargo tarpaulin --out Xml
+      bash <(curl -s https://codecov.io/bash)
+    fi
+
+_linux_x11: &linux_x11
+  os: linux
+  services:
+    - xvfb
+  addons:
+    apt:
+      packages:
+        - libxcb-shape0-dev     # Because we use clipboard crate
+        - libxcb-xfixes0-dev    # Because we use clipboard crate
+        - libssl-dev
+
+matrix:
+  allow_failures:
+    - os: windows
 
 jobs:
   include:
-    - stage: "Tests"
-      language: rust
-      os:
-        - linux
-        - windows
-        - osx
-      rust:
-        - stable
-        - beta
-        - nightly
-      services:
-        - xvfb
-      addons:
-        apt:
-          packages:
-            - libxcb-shape0-dev     # Because we use clipboard crate
-            - libxcb-xfixes0-dev    # Because we use clipboard crate
-            - libssl-dev
-      cache: cargo
-      matrix:
-        allow_failures:
-          - os: windows
-      before_cache: |
-        if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
-          cargo install cargo-tarpaulin -f
-        fi
-      script:
-        - cargo clean
-        - cargo build
-        - cargo test
-      after_success: |
-        if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
-          cargo tarpaulin --out Xml
-          bash <(curl -s https://codecov.io/bash)
-        fi
+    - stage: "Linux Tests"
+      name: "Rust stable"
+      <<: *rust_base
+      <<: *linux_x11
+      <<: *coverage
+      rust: stable
+
+    - stage: "Linux Tests"
+      name: "Rust beta"
+      if: branch =~ /^(master|develop)$/
+      <<: *rust_base
+      <<: *linux_x11
+      rust: beta
+
+    - stage: "Linux Tests"
+      name: "Rust nightly"
+      if: type = cron
+      <<: *rust_base
+      <<: *linux_x11
+      rust: nightly
+
+    - stage: "MacOS Tests"
+      name: "Rust stable"
+      <<: *rust_base
+      os: osx
+      rust: stable
+
+    - stage: "MacOS Tests"
+      name: "Rust beta"
+      if: branch =~ /^(master|develop)$/
+      <<: *rust_base
+      os: osx
+      rust: beta
+
+    - stage: "MacOS Tests"
+      name: "Rust nightly"
+      if: type = cron
+      <<: *rust_base
+      os: osx
+      rust: nightly
+
+    - stage: "Windows Tests"
+      name: "Rust stable"
+      <<: *rust_base
+      os: windows
+      rust: stable
+
+    - stage: "Windows Tests"
+      name: "Rust beta"
+      if: branch =~ /^(master|develop)$/
+      <<: *rust_base
+      os: windows
+      rust: beta
+
+    - stage: "Windows Tests"
+      name: "Rust nightly"
+      if: type = cron
+      <<: *rust_base
+      os: windows
+      rust: nightly
 
     - stage: "Deployments"
       name: "Crates.io"
-      language: rust
+      <<: *rust_base
+      <<: *linux_x11
       deploy:
         provider: cargo
         token:
