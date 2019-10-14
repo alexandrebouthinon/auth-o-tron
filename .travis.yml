@@ -1,53 +1,49 @@
 ---
-language: rust
 
-os:
-  - linux
-  - windows
-  - osx
+jobs:
+  include:
+    - stage: "Tests"
+      language: rust
+      os:
+        - linux
+        - windows
+        - osx
+      rust:
+        - stable
+        - beta
+        - nightly
+      services:
+        - xvfb
+      addons:
+        apt:
+          packages:
+            - libxcb-shape0-dev     # Because we use clipboard crate
+            - libxcb-xfixes0-dev    # Because we use clipboard crate
+            - libssl-dev
+      cache: cargo
+      matrix:
+        allow_failures:
+          - os: windows
+      before_cache: |
+        if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
+          cargo install cargo-tarpaulin -f
+        fi
+      script:
+        - cargo clean
+        - cargo build
+        - cargo test
+      after_success: |
+        if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
+          cargo tarpaulin --out Xml
+          bash <(curl -s https://codecov.io/bash)
+        fi
 
-rust:
-  - stable
-  - beta
-  - nightly
-
-services:
-  - xvfb
-
-addons:
-  apt:
-    packages:
-      - libxcb-shape0-dev     # Because we use clipboard crate
-      - libxcb-xfixes0-dev    # Because we use clipboard crate
-      - libssl-dev
-
-cache: cargo
-matrix:
-  allow_failures:
-    - os: windows
-
-before_cache: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
-    cargo install cargo-tarpaulin -f
-  fi
-
-script:
-  - cargo clean
-  - cargo build
-  - cargo test
-
-after_success: |
-  if [[ "$TRAVIS_RUST_VERSION" == stable && "$TRAVIS_OS_NAME" == linux ]]; then
-    cargo tarpaulin --out Xml
-    bash <(curl -s https://codecov.io/bash)
-  fi
-
-deploy:
-  provider: cargo
-  token:
-    secure: PLfxWrXDBXlw2NAurRC+nDvozXmvqS05ezWxLkIGVtT48PuhsHbw7eTk8eVyMsuLttlAT7avnR+5lxGCq9Q2nXZUjV2xbq0ewZwEyQ5KXrusFJKNYgamRdSfd7EshfG2NSLN/rObmVh1zeSldk2c8f9wKBMqo+mav5ML3lagXMi2Ls0mZUguuNueoIOjg/RRxZwfK5kdFcIeYoxruRhPhbMbXgbahtl2exwth6QD4xMw4pvqwO4VFE1OvfSc626fC04YbZf1jcfEte0HmnOsnBKOqKBZyO67jyZm+4POGMOLOHbPqNmItz5ucn877C3vkcespXR1y6NHoViOXx8+VBaI3ngSFSSa9Ba1SRWjmxYCgxUHf8qsba8jQnn1UA47aHmdojW+/wbnu9X9LvcEcax08hJ2pew+79jVIRZIRqyDXvaDJUho1zbXvcWPaq1bddxf7+OHsCvG2qdVfjsQ6YEPxIfNn1pmmIlVJzkOeVHed1KkdqabVoBT2MKI61uxe9WHEVZwsOc9BGxJSq5gBAtu6k4VjxfW+rxsvug+4WEPQ/e4cd7yIbss7atCbHuQkIRebgjUHsJlhJ38SIDzGzOo4Mc2QF9DM8TrZ80IS0dXTMxqOekXOH1DjDhmzOSvVWcpFwRAVa6Y+yB91BJsIYZTExGy31VfOYy0rApjfnM=
-  on:
-    tags: true
-    branch: master
-    rust: stable
-    os: linux
+    - stage: "Deployments"
+      name: "Crates.io"
+      language: rust
+      deploy:
+        provider: cargo
+        token:
+          secure: PLfxWrXDBXlw2NAurRC+nDvozXmvqS05ezWxLkIGVtT48PuhsHbw7eTk8eVyMsuLttlAT7avnR+5lxGCq9Q2nXZUjV2xbq0ewZwEyQ5KXrusFJKNYgamRdSfd7EshfG2NSLN/rObmVh1zeSldk2c8f9wKBMqo+mav5ML3lagXMi2Ls0mZUguuNueoIOjg/RRxZwfK5kdFcIeYoxruRhPhbMbXgbahtl2exwth6QD4xMw4pvqwO4VFE1OvfSc626fC04YbZf1jcfEte0HmnOsnBKOqKBZyO67jyZm+4POGMOLOHbPqNmItz5ucn877C3vkcespXR1y6NHoViOXx8+VBaI3ngSFSSa9Ba1SRWjmxYCgxUHf8qsba8jQnn1UA47aHmdojW+/wbnu9X9LvcEcax08hJ2pew+79jVIRZIRqyDXvaDJUho1zbXvcWPaq1bddxf7+OHsCvG2qdVfjsQ6YEPxIfNn1pmmIlVJzkOeVHed1KkdqabVoBT2MKI61uxe9WHEVZwsOc9BGxJSq5gBAtu6k4VjxfW+rxsvug+4WEPQ/e4cd7yIbss7atCbHuQkIRebgjUHsJlhJ38SIDzGzOo4Mc2QF9DM8TrZ80IS0dXTMxqOekXOH1DjDhmzOSvVWcpFwRAVa6Y+yB91BJsIYZTExGy31VfOYy0rApjfnM=
+        on:
+          branch: master
