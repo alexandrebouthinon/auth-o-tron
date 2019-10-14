@@ -1,11 +1,12 @@
 [package]
-name = "oath-keeper"
+name = "auth-o-tron"
+description = "Extract accounts from a FreeOTP URI backup and generate codes."
 version = "0.1.0"
 authors = ["Alexandre Bouthinon <bouthinon.alexandre@gmail.com>"]
 edition = "2018"
 license = "MIT"
-homepage = "https://github.com/alexandrebouthinon/oath-keeper"
-repository = "https://github.com/alexandrebouthinon/oath-keeper.git"
+homepage = "https://github.com/alexandrebouthinon/auth-o-tron"
+repository = "https://github.com/alexandrebouthinon/auth-o-tron.git"
 
 [dependencies]
 url = "^2.1.0"
