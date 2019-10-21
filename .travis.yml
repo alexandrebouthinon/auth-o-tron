@@ -99,6 +99,7 @@ jobs:
 
     - stage: "Deployments"
       name: "Crates.io"
+      if: branch = master
       <<: *rust_base
       <<: *linux_x11
       deploy:

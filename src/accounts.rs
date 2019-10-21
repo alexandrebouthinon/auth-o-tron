@@ -32,7 +32,7 @@ use url::Url;
 /// Used to store information extract from a FreeOTP+ URI
 #[derive(Clone, Debug)]
 pub struct Account {
-    username: String,
+    username: Option<String>,
     issuer: String,
     secret: String,
     period: u64,
@@ -41,12 +41,27 @@ pub struct Account {
 impl Account {
     /// Create an Account from a FreeOTP+ URI
     pub fn new(url: &Url) -> Result<Account, failure::Error> {
-        // Extract username from URI
-        let mut username: String = percent_decode_str(&url.path()[1..])
-            .decode_utf8()?
-            .to_string();
-        let useful_beg = &username.find(':').unwrap_or(username.len()) + 1;
-        username = username.drain(useful_beg..).collect();
+        // Remove unused URL part
+        let cleaned_url: String = url
+            .to_string()
+            .drain(&url.to_string().find('/').unwrap()..)
+            .collect();
+        let mut decoded_url: String =
+            percent_decode_str(&cleaned_url).decode_utf8()?.into();
+
+        let mut username: Option<String> = None;
+        if decoded_url.contains(":") {
+            // Extract username from URI
+            let username_beg = &decoded_url.find(':').unwrap() + 1;
+            let username_end = &decoded_url.find('?').unwrap();
+            username = Some(
+                decoded_url
+                    .drain(..username_end)
+                    .collect::<String>()
+                    .drain(username_beg..)
+                    .collect(),
+            );
+        }
 
         let query: HashMap<_, _> = url.query_pairs().collect();
         let issuer: String = query.get("issuer").unwrap().to_string();
@@ -80,24 +95,28 @@ impl Account {
 /// information about given accounts
 pub fn pretty_display(accounts: &Vec<Account>) -> String {
     let mut table = Table::new();
+
+    // Table headers
     table.add_row(Row::new(vec![
         Cell::new("#"),
         Cell::new("Issuer"),
         Cell::new("Username"),
     ]));
 
+    // Accounts rows
     for (index, account) in accounts.iter().enumerate() {
+        let username: &str = match &account.username {
+            Some(u) => u,
+            None => "-",
+        };
         table.add_row(Row::new(vec![
             Cell::new(&(index).to_string()),
             Cell::new(&account.issuer),
-            Cell::new(&account.username),
+            Cell::new(username),
         ]));
     }
-    format!(
-        "[+] {} Account[s] found:\n{}",
-        &accounts.len(),
-        table.to_string()
-    )
+
+    table.to_string()
 }
 
 mod tests {
@@ -122,9 +141,28 @@ mod tests {
         );
         assert!(account_result.is_ok());
         let account = account_result.unwrap();
-        assert_eq!("myuser@mail.com", account.username);
+        assert_eq!("myuser@mail.com", account.username.unwrap());
         assert_eq!("one.website.net", account.issuer);
         assert_eq!("MYSUPERSECRET", account.secret);
+        assert_eq!(30, account.period);
+    }
+
+    #[test]
+    fn account_from_url_without_username_ok() {
+        let account_result = create_fake_account(
+            "
+            otpauth://totp/mukeymos?\
+            secret=AAAAAAAAA&\
+            issuer=Real-Debrid&\
+            algorithm=SHA1&\
+            digits=6&\
+            period=30",
+        );
+        assert!(account_result.is_ok());
+        let account = account_result.unwrap();
+        assert_eq!(None, account.username);
+        assert_eq!("Real-Debrid", account.issuer);
+        assert_eq!("AAAAAAAAA", account.secret);
         assert_eq!(30, account.period);
     }
 
@@ -154,6 +192,23 @@ mod tests {
             period=30",
         );
 
+        let account = account_result.unwrap();
+        let code = account.generate_code();
+        assert!(code.is_ok());
+        assert_eq!(code.unwrap().len(), 6);
+    }
+
+    #[test]
+    fn generate_code_without_username_ok() {
+        let account_result = create_fake_account(
+            "
+            otpauth://totp/mukeymos?\
+            secret=AAAAAAAAA&\
+            issuer=Real-Debrid&\
+            algorithm=SHA1&\
+            digits=6&\
+            period=30",
+        );
         let account = account_result.unwrap();
         let code = account.generate_code();
         assert!(code.is_ok());
@@ -196,15 +251,13 @@ mod tests {
             .map(|x| x.to_string())
             .collect();
 
-        // Check sub title
-        assert!(&table[0].contains("[+] 1 Account[s] found:"));
         // Check headers
-        assert!(&table[2].contains("#"));
-        assert!(&table[2].contains("Issuer"));
-        assert!(&table[2].contains("Username"));
+        assert!(&table[1].contains("#"));
+        assert!(&table[1].contains("Issuer"));
+        assert!(&table[1].contains("Username"));
         // Check cells
-        assert!(&table[4].contains("0"));
-        assert!(&table[4].contains("one.website.net"));
-        assert!(&table[4].contains("myuser@mail.com"));
+        assert!(&table[3].contains("0"));
+        assert!(&table[3].contains("one.website.net"));
+        assert!(&table[3].contains("myuser@mail.com"));
     }
 }
