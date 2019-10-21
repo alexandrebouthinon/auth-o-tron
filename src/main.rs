@@ -24,7 +24,7 @@ mod accounts;
 mod cli;
 
 use std::fs::File;
-use std::io::{self, Write};
+use std::io;
 
 use dialoguer::Input;
 use exitfailure::ExitFailure;
@@ -37,8 +37,11 @@ fn main() -> Result<(), ExitFailure> {
         .with_context(|_| format!("Could not open file `{}`", &cli.file))?;
 
     let accounts: Vec<accounts::Account> = cli::parse_backup(&file)?;
-    print!("{}", &accounts::pretty_display(&accounts));
-    io::stdout().flush()?;
+    println!(
+        "[*] {} Account[s] found:\n{}",
+        &accounts.len(),
+        &accounts::pretty_display(&accounts)
+    );
 
     let mut choice: usize;
     loop {
@@ -48,16 +51,16 @@ fn main() -> Result<(), ExitFailure> {
         if choice < accounts.len() {
             break;
         }
-        println!("[!] Account {} not found!", choice);
+        println!("[!] Account {} does not exist!", choice);
     }
 
-    let code = &accounts.get(choice).unwrap().generate_code()?;
+    let selected_account = &accounts.get(choice).unwrap();
+    let code = &selected_account.generate_code()?;
 
     if cli.clipboard {
         cli::send_to_clipboard(&code)?;
         println!(
-            "[+] Code saved in clipboard. \
-             Use it and press any key to exit...",
+            "[+] Code saved in clipboard. Use it and press any key to exit...",
         );
         io::stdin().read_line(&mut String::new())?;
     } else {
