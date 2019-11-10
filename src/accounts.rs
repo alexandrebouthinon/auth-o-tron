@@ -26,7 +26,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use failure::format_err;
 use otpauth::TOTP;
 use percent_encoding::percent_decode_str;
-use prettytable::{Cell, Row, Table};
+use prettytable::{format, Cell, Row, Table};
 use url::Url;
 
 /// Used to store information extract from a FreeOTP+ URI
@@ -95,9 +95,10 @@ impl Account {
 /// information about given accounts
 pub fn pretty_display(accounts: &Vec<Account>) -> String {
     let mut table = Table::new();
+    table.set_format(*format::consts::FORMAT_NO_BORDER_LINE_SEPARATOR);
 
     // Table headers
-    table.add_row(Row::new(vec![
+    table.set_titles(Row::new(vec![
         Cell::new("#"),
         Cell::new("Issuer"),
         Cell::new("Username"),
