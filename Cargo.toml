@@ -11,7 +11,7 @@ repository = "https://github.com/alexandrebouthinon/auth-o-tron.git"
 [dependencies]
 url = "^2.1.0"
 otpauth = "^0.4.1"
-prettytable-rs = "^0.8.0"
+prettytable-rs = "^0.10.0"
 percent-encoding = "^2.1.0"
 failure = "^0.1.5"
 exitfailure = "^0.5.1"
